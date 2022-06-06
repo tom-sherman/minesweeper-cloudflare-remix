@@ -259,10 +259,10 @@ const getMinePlacements = ({
   while (i < mines) {
     const x = Math.floor(Math.random() * width);
     const y = Math.floor(Math.random() * height);
-    if (minePlacements[x]![y] === true) {
+    if (minePlacements[y]![x] === true) {
       continue;
     }
-    minePlacements[x]![y] = true;
+    minePlacements[y]![x] = true;
     i++;
   }
   return minePlacements;
