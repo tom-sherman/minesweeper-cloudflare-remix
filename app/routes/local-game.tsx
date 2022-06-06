@@ -1,7 +1,10 @@
-import { LinksFunction } from "@remix-run/cloudflare";
+import type { LinksFunction } from "@remix-run/cloudflare";
 import { useSearchParams } from "@remix-run/react";
 import { useActor, useMachine } from "@xstate/react";
+import { createContext, memo } from "react";
+import { useContext } from "react";
 import { useEffect, useReducer } from "react";
+import type { EventFrom } from "xstate";
 import type { Cell } from "~/game/minesweeperBoardMachine";
 import { boardMachine } from "~/game/minesweeperBoardMachine";
 import { PRESETS } from "~/game/presets";
@@ -10,6 +13,10 @@ import gameStyles from "~/styles/game.css";
 export const links: LinksFunction = () => [
   { rel: "stylesheet", href: gameStyles },
 ];
+
+const SendContext = createContext<
+  (event: EventFrom<typeof boardMachine>) => void
+>(() => {});
 
 export default function LocalGame() {
   const params = useGameParams();
@@ -29,28 +36,19 @@ export default function LocalGame() {
   }
 
   return (
-    <>
+    <SendContext.Provider value={send}>
       <button onClick={toggleDebug}>Toggle debug</button>
-      <GameBoard
-        board={board}
-        onCellClick={(type, x, y) => send({ type, position: { x, y } })}
-        debug={debug}
-      />
-    </>
+      <GameBoard board={board} debug={debug} />
+    </SendContext.Provider>
   );
 }
 
 interface GameBoardProps {
   board: Cell[][];
-  onCellClick?: (
-    type: "FLAG_CELL" | "UNFLAG_CELL" | "REVEAL_CELL",
-    x: number,
-    y: number
-  ) => void;
   debug?: boolean;
 }
 
-const GameBoard = ({ board, onCellClick, debug = false }: GameBoardProps) => {
+const GameBoard = ({ board, debug = false }: GameBoardProps) => {
   return (
     <table className="board">
       <tbody>
@@ -58,13 +56,7 @@ const GameBoard = ({ board, onCellClick, debug = false }: GameBoardProps) => {
           <tr key={y}>
             {row.map((cell, x) => (
               <td key={x} className="cell">
-                <GameCell
-                  cell={cell}
-                  onFlag={() => onCellClick?.("FLAG_CELL", x, y)}
-                  onUnflag={() => onCellClick?.("UNFLAG_CELL", x, y)}
-                  onReveal={() => onCellClick?.("REVEAL_CELL", x, y)}
-                  debug={debug}
-                />
+                <GameCell cell={cell} debug={debug} x={x} y={y} />
               </td>
             ))}
           </tr>
@@ -76,20 +68,14 @@ const GameBoard = ({ board, onCellClick, debug = false }: GameBoardProps) => {
 
 interface GameCellProps {
   cell: Cell;
-  onReveal: () => void;
-  onFlag: () => void;
-  onUnflag: () => void;
+  x: number;
+  y: number;
   debug: boolean;
 }
 
-const GameCell = ({
-  cell,
-  onReveal,
-  onFlag,
-  onUnflag,
-  debug,
-}: GameCellProps) => {
+const GameCell = memo(function GameCell({ cell, debug, x, y }: GameCellProps) {
   const [state] = useActor(cell.ref);
+  const send = useContext(SendContext);
 
   if (state.matches("revealed") || debug) {
     if (state.context.neighbouringMineCount == null && !debug) {
@@ -106,7 +92,7 @@ const GameCell = ({
       <button
         onContextMenu={(e) => {
           e.preventDefault();
-          onUnflag();
+          send({ type: "UNFLAG_CELL", position: { x, y } });
         }}
         className="cell-button"
       >
@@ -117,15 +103,15 @@ const GameCell = ({
 
   return (
     <button
-      onClick={onReveal}
+      onClick={() => send({ type: "REVEAL_CELL", position: { x, y } })}
       onContextMenu={(e) => {
         e.preventDefault();
-        onFlag();
+        send({ type: "FLAG_CELL", position: { x, y } });
       }}
       className="cell cell-button"
     />
   );
-};
+});
 
 interface GameParams {
   width: number;
