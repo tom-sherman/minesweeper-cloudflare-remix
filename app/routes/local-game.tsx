@@ -94,7 +94,7 @@ const GameCell = memo(function GameCell({ cell, debug, x, y }: GameCellProps) {
           e.preventDefault();
           send({ type: "UNFLAG_CELL", position: { x, y } });
         }}
-        className="cell-button"
+        className="cell cell-button"
       >
         🚩
       </button>
