@@ -1,0 +1,14 @@
+.cell {
+  font-size: 14px;
+  font-family: "Courier New", Courier, monospace;
+  text-align: center;
+  padding: 3px;
+  height: 15px;
+  width: 15px;
+}
+
+.board td {
+  border-spacing: 0;
+  line-height: 0;
+  padding: 0;
+}
