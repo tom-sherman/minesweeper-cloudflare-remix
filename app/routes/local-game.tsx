@@ -21,7 +21,7 @@ const SendContext = createContext<
 export default function LocalGame() {
   const params = useGameParams();
   const [state, send] = useMachine(boardMachine, {
-    // devTools: true,
+    devTools: true,
   });
   const [debug, toggleDebug] = useReducer((d) => !d, false);
 
